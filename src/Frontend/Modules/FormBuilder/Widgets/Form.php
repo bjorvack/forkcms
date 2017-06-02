@@ -183,8 +183,10 @@ class Form extends FrontendBaseWidget
                     // create element
                     $ddm = $this->frm->addDropdown($item['name'], $values, $defaultIndex, false, $item['classname']);
 
-                    // empty default element
-                    $ddm->setDefaultElement('');
+                    if (!$defaultIndex || !$item['required']) {
+                        // empty default element when not required or when no default is given
+                        $ddm->setDefaultElement('');
+                    }
 
                     // add required attribute
                     if ($item['required']) {

@@ -9,8 +9,8 @@ namespace Frontend\Core\Engine;
  * file that was distributed with this source code.
  */
 
+use Symfony\Component\HttpFoundation\Request;
 use TijsVerkoyen\Akismet\Akismet;
-use Common\Cookie as CommonCookie;
 
 /**
  * In this file we store all generic functions that we will be using in the frontend.
@@ -301,14 +301,20 @@ class Model extends \Common\Core\Model
         if (self::$visitorId !== null) {
             return self::$visitorId;
         }
+        /** @var Request $request */
+        $request = self::getContainer()->get('request');
 
         // get/init tracking identifier
-        self::$visitorId = CommonCookie::exists('track') && !empty($_COOKIE['track'])
-            ? (string) CommonCookie::get('track')
+        self::$visitorId = $request->cookies->has('track')
+            ? (string) $request->cookies->get('track')
             : md5(uniqid('', true) . \SpoonSession::getSessionId());
 
-        if (!self::get('fork.settings')->get('Core', 'show_cookie_bar', false) || CommonCookie::hasAllowedCookies()) {
-            CommonCookie::set('track', self::$visitorId, 86400 * 365);
+        if (!self::get('fork.settings')->get('Core', 'show_cookie_bar', false) ||
+            ($request->cookies->has('cookie_bar_agree') &&
+                $request->cookies->get('cookie_bar_agree')
+            )
+        ) {
+            $request->cookies->set('track', self::$visitorId);
         }
 
         return self::getVisitorId();

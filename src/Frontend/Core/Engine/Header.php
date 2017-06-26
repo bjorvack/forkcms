@@ -9,10 +9,10 @@ namespace Frontend\Core\Engine;
  * file that was distributed with this source code.
  */
 
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use MatthiasMullie\Minify;
-use Common\Cookie as CommonCookie;
 use Frontend\Core\Engine\Base\Object as FrontendBaseObject;
 
 /**
@@ -98,12 +98,19 @@ class Header extends FrontendBaseObject
     private $pageTitle;
 
     /**
+     * @var Request
+     */
+    private $request;
+
+    /**
      * @param KernelInterface $kernel
      */
     public function __construct(KernelInterface $kernel)
     {
         parent::__construct($kernel);
         $this->getContainer()->set('header', $this);
+
+        $this->request = $this->getContainer()->get('request');
 
         // add some default CSS files
         $this->addCSS('/src/Frontend/Core/Layout/Css/screen.css');
@@ -682,7 +689,9 @@ class Header extends FrontendBaseObject
         ) {
             $anonymize = (
                 $this->get('fork.settings')->get('Core', 'show_cookie_bar', false) &&
-                !CommonCookie::hasAllowedCookies()
+                !($this->request->cookies->has('cookie_bar_agree') &&
+                    $this->request->cookies->get('cookie_bar_agree')
+                )
             );
 
             $request = $this->getContainer()->get('request');

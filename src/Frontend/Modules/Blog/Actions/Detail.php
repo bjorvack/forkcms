@@ -9,7 +9,6 @@ namespace Frontend\Modules\Blog\Actions;
  * file that was distributed with this source code.
  */
 
-use Common\Cookie as CommonCookie;
 use Frontend\Core\Engine\Base\Block as FrontendBaseBlock;
 use Frontend\Core\Engine\Form as FrontendForm;
 use Frontend\Core\Language\Language as FL;
@@ -17,6 +16,7 @@ use Frontend\Core\Engine\Model as FrontendModel;
 use Frontend\Core\Engine\Navigation as FrontendNavigation;
 use Frontend\Modules\Blog\Engine\Model as FrontendBlogModel;
 use Frontend\Modules\Tags\Engine\Model as FrontendTagsModel;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * This is the detail-action
@@ -52,11 +52,17 @@ class Detail extends FrontendBaseBlock
     private $settings;
 
     /**
+     * @var Request
+     */
+    private $request;
+
+    /**
      * Execute the extra
      */
     public function execute()
     {
         parent::execute();
+        $this->request = $this->getContainer()->get('request');
         $this->tpl->assignGlobal('hideContentTitle', true);
         $this->loadTemplate();
         $this->getData();
@@ -122,14 +128,16 @@ class Detail extends FrontendBaseBlock
      */
     private function loadForm()
     {
+        $cookies = $this->request->cookies;
+
         // create form
         $this->frm = new FrontendForm('commentsForm');
         $this->frm->setAction($this->frm->getAction() . '#' . FL::act('Comment'));
 
         // init vars
-        $author = (CommonCookie::exists('comment_author')) ? CommonCookie::get('comment_author') : null;
-        $email = (CommonCookie::exists('comment_email') && \SpoonFilter::isEmail(CommonCookie::get('comment_email'))) ? CommonCookie::get('comment_email') : null;
-        $website = (CommonCookie::exists('comment_website') && \SpoonFilter::isURL(CommonCookie::get('comment_website'))) ? CommonCookie::get('comment_website') : 'http://';
+        $author = ($cookies->has('comment_author')) ? $cookies->get('comment_author') : null;
+        $email = ($cookies->has('comment_email') && \SpoonFilter::isEmail($cookies->get('comment_email'))) ? $cookies->get('comment_email') : null;
+        $website = ($cookies->has('comment_website') && \SpoonFilter::isURL($cookies->get('comment_website'))) ? $cookies->get('comment_website') : 'http://';
 
         // create elements
         $this->frm->addText('author', $author)->setAttributes(array('required' => null));
@@ -417,9 +425,9 @@ class Detail extends FrontendBaseBlock
 
                 // store author-data in cookies
                 try {
-                    CommonCookie::set('comment_author', $author);
-                    CommonCookie::set('comment_email', $email);
-                    CommonCookie::set('comment_website', $website);
+                    $this->request->cookies->set('comment_author', $author);
+                    $this->request->cookies->set('comment_email', $email);
+                    $this->request->cookies->set('comment_website', $website);
                 } catch (\Exception $e) {
                     // settings cookies isn't allowed, but because this isn't a real problem we ignore the exception
                 }

@@ -11,7 +11,6 @@ namespace Backend\Core\Engine;
 
 use Backend\Core\Engine\Base\Config as BackendBaseConfig;
 use Backend\Core\Engine\Model as BackendModel;
-use Common\Cookie as CommonCookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Finder\Finder;
@@ -280,9 +279,9 @@ class Url extends Base\Object
         // is the user authenticated
         if (Authentication::getUser()->isAuthenticated()) {
             $locale = Authentication::getUser()->getSetting('interface_language', $default);
-        } elseif (CommonCookie::exists('interface_language')) {
+        } elseif ($this->request->cookies->has('interface_language')) {
             // no authenticated user, but available from a cookie
-            $locale = CommonCookie::get('interface_language');
+            $locale = $this->request->cookies->get('interface_language');
         }
 
         // validate if the requested locale is possible

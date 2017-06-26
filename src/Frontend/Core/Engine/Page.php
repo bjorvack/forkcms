@@ -12,9 +12,9 @@ namespace Frontend\Core\Engine;
 use Common\Exception\RedirectException;
 use Frontend\Core\Language\Language;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\KernelInterface;
-use Common\Cookie as CommonCookie;
 use Frontend\Core\Engine\Base\Object as FrontendBaseObject;
 use Frontend\Core\Engine\Block\Extra as FrontendBlockExtra;
 use Frontend\Core\Engine\Block\Widget as FrontendBlockWidget;
@@ -192,6 +192,9 @@ class Page extends FrontendBaseObject
      */
     public function display()
     {
+        /** @var Request $request */
+        $request = $this->getContainer()->get('request');
+
         // assign the id so we can use it as an option
         $this->tpl->addGlobal('isPage' . $this->pageId, true);
         $this->tpl->addGlobal('isChildOfPage' . $this->record['parent_id'], true);
@@ -199,7 +202,9 @@ class Page extends FrontendBaseObject
         // hide the cookiebar from within the code to prevent flickering
         $this->tpl->addGlobal(
             'cookieBarHide',
-            (!$this->get('fork.settings')->get('Core', 'show_cookie_bar', false) || CommonCookie::hasHiddenCookieBar())
+            (!$this->get('fork.settings')->get('Core', 'show_cookie_bar', false) ||
+                ($request->cookies->has('cookie_bar_hide') && $request->cookies->get('cookie_bar_hide'))
+            )
         );
 
         // the the positions to the template

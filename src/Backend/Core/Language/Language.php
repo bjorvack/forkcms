@@ -10,8 +10,8 @@ namespace Backend\Core\Language;
  */
 
 use Backend\Core\Engine\Model;
-use Common\Cookie as CommonCookie;
 use Backend\Modules\Locale\Engine\Model as BackendLocaleModel;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * This class will store the language-dependant content for the Backend, it will also store the
@@ -317,6 +317,7 @@ class Language
      */
     public static function setLocale($language)
     {
+        $request = Model::getContainer()->get('request');
         $language = (string) $language;
 
         // validate file, generate it if needed
@@ -334,14 +335,9 @@ class Language
         // store
         self::$currentInterfaceLanguage = $language;
 
-        // attempt to set a cookie
-        try {
-            // Needed to make it possible to use the backend language in the console.
-            if (defined('APPLICATION') && APPLICATION !== 'Console') {
-                CommonCookie::set('interface_language', $language);
-            }
-        } catch (\SpoonCookieException $e) {
-            // settings cookies isn't allowed, because this isn't a real problem we ignore the exception
+        // Needed to make it possible to use the backend language in the console.
+        if (defined('APPLICATION') && APPLICATION !== 'Console') {
+            $request->cookies->set('interface_language', $language);
         }
 
         // set English translations, they'll be the fallback

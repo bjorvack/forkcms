@@ -6,7 +6,9 @@ use Backend\Core\Engine\Model;
 use Backend\Modules\Tags\Entity\ModuleTag;
 use Backend\Modules\Tags\Entity\Tag;
 use Backend\Modules\Search\Engine\Model as BackendSearchModel;
+use Common\Locale;
 use Doctrine\ORM\EntityRepository;
+use Doctrine\ORM\Query\Expr\Join;
 
 class TagRepository extends EntityRepository
 {
@@ -200,7 +202,7 @@ class TagRepository extends EntityRepository
         return $results;
     }
 
-    public function findByLanguage(string $language, string $alias = 'tag'): array
+    public function findTagByLanguage(string $language, string $alias = 'tag'): array
     {
         $results = $this->getEntityManager()
             ->createQueryBuilder()
@@ -308,5 +310,155 @@ class TagRepository extends EntityRepository
         }
 
         return $url;
+    }
+
+    public function findByLanguage(Locale $locale): array
+    {
+        $results = $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('t.tag as name, t.url, t.number')
+            ->from(Tag::class, 't')
+            ->where('t.language = :language')
+            ->setParameter('language', $locale->getLocale())
+            ->getQuery()
+            ->getResult();
+
+        return $results;
+    }
+
+    public function findByMostUsed(Locale $locale, int $limit): array
+    {
+        $results = $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('t.tag as name, t.url, t.number')
+            ->from(Tag::class, 't')
+            ->where('t.language = :language')
+            ->andWhere('t.number > 0')
+            ->setParameter('language', $locale->getLocale())
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+
+        return $results;
+    }
+
+    public function findByUrl(string $url, Locale $locale): array
+    {
+        $results = $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('t.id, t.language, t.tag as name, t.number, t.url')
+            ->from(Tag::class, 't')
+            ->where('t.url = :url')
+            ->andWhere('t.language = :language')
+            ->setParameters([
+                'url' => $url,
+                'language' => $locale->getLocale(),
+            ])
+            ->orderBy('name', 'ASC')
+            ->getQuery()
+            ->getScalarResult();
+
+        return $results;
+    }
+
+    public function findItem(string $module, int $otherId, Locale $locale): array
+    {
+        return $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('t.tag as tag, t.url')
+            ->from(Tag::class, 't')
+            ->innerJoin('t.moduleTags', 'mt')
+            ->where('mt.module = :module')
+            ->andWhere('mt.other = :otherId')
+            ->andWhere('t.language = :language')
+            ->setParameters([
+                'module' => $module,
+                'otherId' => $otherId,
+                'language' => $locale->getLocale(),
+            ])
+            ->getQuery()
+            ->getScalarResult();
+    }
+
+    public function findItems(string $module, array $otherIds, Locale $locale): array
+    {
+        return $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('t.tag as tag, t.url')
+            ->from(Tag::class, 't')
+            ->innerJoin('t.moduleTags', 'mt')
+            ->where('mt.module = :module')
+            ->andWhere('mt.other IN (:otherId)')
+            ->andWhere('t.language = :language')
+            ->setParameters([
+                'module' => $module,
+                'otherId' => $otherIds,
+                'language' => $locale->getLocale(),
+            ])
+            ->getQuery()
+            ->getScalarResult();
+    }
+
+    public function findIdByUrl(string $url): int
+    {
+        $results = $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('t.url')
+            ->from(Tag::class, 't')
+            ->where('t.url = :url')
+            ->setParameter('url', $url)
+            ->getQuery()
+            ->getScalarResult();
+
+        array_walk($results, function (&$result) {
+            $result = $result['url'];
+        });
+
+        return intval($results[0]);
+    }
+
+    public function findModulesById(int $id): array
+    {
+        $results = $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('mt.module')
+            ->from(ModuleTag::class, 'mt')
+            ->where('mt.tag_id = :tag')
+            ->setParameter('tag', $id)
+            ->getQuery()
+            ->getScalarResult();
+
+        array_walk($results, function (&$result) {
+            $result = $result['module'];
+        });
+
+        return $results;
+    }
+
+    public function findRelatedItems(int $otherId, string $module, string $otherModule, int $limit): array
+    {
+        $results = $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('mt2.other_id')
+            ->from(ModuleTag::class, 'mt')
+            ->innerJoin('modules_tags', 'mt2', Join::ON, 'mt.tag_id = mt2.tag_id')
+            ->where('mt.other_id = :otherId')
+            ->andWhere('mt.module = :module')
+            ->andWhere('mt2.module = :otherModule')
+            ->andWhere('(mt2.module != mt.module OR mt2.other_id != mt.other_id)')
+            ->setParameters([
+                'otherModule' => $otherModule,
+                'module' => $module,
+                'otherId' => $otherId,
+            ])
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getScalarResult();
+
+        array_walk($results, function (&$result) {
+            $result = $result['other_id'];
+        });
+
+        return $results;
     }
 }

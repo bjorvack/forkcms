@@ -2,6 +2,8 @@
 
 namespace Frontend\Modules\Tags\Engine;
 
+use Backend\Modules\Tags\Entity\Tag;
+use Backend\Modules\Tags\Repository\TagRepository;
 use Common\Locale;
 use Frontend\Core\Engine\Exception as FrontendException;
 use Frontend\Core\Engine\Model as FrontendModel;
@@ -41,14 +43,16 @@ class Model
         );
     }
 
+    private static function getRepository(): TagRepository
+    {
+        return FrontendModel::getContainer()->get('tags.repository.tag');
+    }
+
     public static function get(string $url, Locale $locale = null): array
     {
-        return (array) FrontendModel::getContainer()->get('database')->getRecord(
-            'SELECT id, language, tag AS name, number, url
-             FROM tags
-             WHERE url = ? AND language = ?',
-            [$url, $locale ?? FrontendLocale::frontendLanguage()]
-        );
+        $repository = self::getRepository();
+
+        return $repository->findByUrl($url, $locale);
     }
 
     /**
@@ -58,24 +62,20 @@ class Model
      */
     public static function getAll(): array
     {
-        return (array) FrontendModel::getContainer()->get('database')->getRecords(
-            'SELECT t.tag AS name, t.url, t.number
-             FROM tags AS t
-             WHERE t.language = ? AND t.number > 0
-             ORDER BY t.tag',
-            [FrontendLocale::frontendLanguage()]
+        $repository = self::getRepository();
+
+        return $repository->findByLanguage(
+            FrontendLocale::frontendLanguage()
         );
     }
 
     public static function getMostUsed(int $limit): array
     {
-        return (array) FrontendModel::getContainer()->get('database')->getRecords(
-            'SELECT t.tag AS name, t.url, t.number
-             FROM tags AS t
-             WHERE t.language = ? AND t.number > 0
-             ORDER BY t.number DESC
-             LIMIT ?',
-            [FrontendLocale::frontendLanguage(), $limit]
+        $repository = self::getRepository();
+
+        return $repository->findByMostUsed(
+            FrontendLocale::frontendLanguage(),
+            $limit
         );
     }
 
@@ -88,15 +88,15 @@ class Model
      */
     public static function getForItem(string $module, int $otherId, Locale $locale = null): array
     {
+        $repository = self::getRepository();
+
         $return = [];
 
         // get tags
-        $linkedTags = (array) FrontendModel::getContainer()->get('database')->getRecords(
-            'SELECT t.tag AS name, t.url
-             FROM modules_tags AS mt
-             INNER JOIN tags AS t ON mt.tag_id = t.id
-             WHERE mt.module = ? AND mt.other_id = ? AND t.language = ?',
-            [$module, $otherId, $locale ?? FrontendLocale::frontendLanguage()]
+        $linkedTags = $repository->findItem(
+            $module,
+            $otherId,
+            $locale ?? FrontendLocale::frontendLanguage()
         );
 
         // return
@@ -131,18 +131,16 @@ class Model
      */
     public static function getForMultipleItems(string $module, array $otherIds, Locale $locale = null): array
     {
-        $database = FrontendModel::getContainer()->get('database');
+        $repository = self::getRepository();
 
         // init var
         $return = [];
 
         // get tags
-        $linkedTags = (array) $database->getRecords(
-            'SELECT mt.other_id, t.tag AS name, t.url
-             FROM modules_tags AS mt
-             INNER JOIN tags AS t ON mt.tag_id = t.id
-             WHERE mt.module = ? AND t.language = ? AND mt.other_id IN (' . implode(', ', $otherIds) . ')',
-            [$module, $locale ?? FrontendLocale::frontendLanguage()]
+        $linkedTags = $repository->findItems(
+            $module,
+            $otherIds,
+            $locale ?? FrontendLocale::frontendLanguage()
         );
 
         // return
@@ -167,34 +165,26 @@ class Model
 
     public static function getIdByUrl(string $url): int
     {
-        return (int) FrontendModel::getContainer()->get('database')->getVar(
-            'SELECT id
-             FROM tags
-             WHERE url = ?',
-            [$url]
-        );
+        $repository = self::getRepository();
+
+        return $repository->findIdByUrl($url);
     }
 
     public static function getModulesForTag(int $tagId): array
     {
-        return (array) FrontendModel::getContainer()->get('database')->getColumn(
-            'SELECT module
-             FROM modules_tags
-             WHERE tag_id = ?
-             GROUP BY module
-             ORDER BY module ASC',
-            [$tagId]
-        );
+        $repository = self::getRepository();
+
+        return $repository->findModulesById($tagId);
     }
 
     public static function getName(int $tagId): string
     {
-        return FrontendModel::getContainer()->get('database')->getVar(
-            'SELECT tag
-             FROM tags
-             WHERE id = ?',
-            [$tagId]
-        );
+        $repository = self::getRepository();
+
+        /** @var Tag $tag */
+        $tag = $repository->find($tagId);
+
+        return $tag->getTag();
     }
 
     /**
@@ -209,16 +199,8 @@ class Model
      */
     public static function getRelatedItemsByTags(int $id, string $module, string $otherModule, int $limit = 5): array
     {
-        return (array) FrontendModel::getContainer()->get('database')->getColumn(
-            'SELECT t2.other_id
-             FROM modules_tags AS t
-             INNER JOIN modules_tags AS t2 ON t.tag_id = t2.tag_id
-             WHERE t.other_id = ? AND t.module = ? AND t2.module = ? AND
-                (t2.module != t.module OR t2.other_id != t.other_id)
-             GROUP BY t2.other_id
-             ORDER BY COUNT(t2.tag_id) DESC
-             LIMIT ?',
-            [$id, $module, $otherModule, $limit]
-        );
+        $repository = self::getRepository();
+
+        return $repository->findRelatedItems($id, $module, $otherModule, $limit);
     }
 }

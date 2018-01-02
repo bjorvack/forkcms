@@ -60,14 +60,14 @@ class Model
     {
         $repository = self::getRepository();
 
-        return $repository->findByLanguage($language ?? BL::getWorkingLanguage(), 'name');
+        return $repository->findTagByLanguage($language ?? BL::getWorkingLanguage(), 'name');
     }
 
     public static function getTagNames(string $language = null): array
     {
         $repository = self::getRepository();
 
-        return $repository->findByLanguage($language ?? BL::getWorkingLanguage());
+        return $repository->findTagByLanguage($language ?? BL::getWorkingLanguage());
     }
 
     /**

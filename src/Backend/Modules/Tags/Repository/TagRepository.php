@@ -461,4 +461,26 @@ class TagRepository extends EntityRepository
 
         return $results;
     }
+
+    public function findOtherIdByModule(string $module, int $tagId): array
+    {
+        $results = $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('mt.other_id')
+            ->from(ModuleTag::class, 'mt')
+            ->where('mt.module = :module')
+            ->andWhere('mt.tag_id = :tag')
+            ->setParameters([
+                'module' => $module,
+                'tag' => $tagId,
+            ])
+            ->getQuery()
+            ->getScalarResult();
+
+        array_walk($results, function (&$result) {
+            $result = $result['other_id'];
+        });
+
+        return $results;
+    }
 }

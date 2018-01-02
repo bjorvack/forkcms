@@ -2,6 +2,7 @@
 
 namespace Frontend\Modules\Tags\Actions;
 
+use Backend\Modules\Tags\Repository\TagRepository;
 use Frontend\Core\Engine\Base\Block as FrontendBaseBlock;
 use Frontend\Core\Language\Language as FL;
 use Frontend\Core\Engine\Navigation as FrontendNavigation;
@@ -58,18 +59,16 @@ class Detail extends FrontendBaseBlock
             $this->redirect(FrontendNavigation::getUrl(404));
         }
 
+        /** @var TagRepository $repository */
+        $repository = $this->get('tags.repository.tag');
+
         // fetch modules
         $this->modules = FrontendTagsModel::getModulesForTag($this->record['id']);
 
         // loop modules
         foreach ($this->modules as $module) {
             // get the ids of the items linked to the tag
-            $otherIds = (array) $this->get('database')->getColumn(
-                'SELECT other_id
-                 FROM modules_tags
-                 WHERE module = ? AND tag_id = ?',
-                [$module, $this->record['id']]
-            );
+            $otherIds = $repository->findOtherIdByModule($module, $this->record['id']);
 
             // set module class
             $class = 'Frontend\\Modules\\' . $module . '\\Engine\\Model';

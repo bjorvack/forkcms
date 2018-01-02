@@ -1,0 +1,6 @@
+services:
+    tags.repository.tag:
+        class: Backend\Modules\Tags\Repository\TagRepository
+        factory: ["@doctrine.orm.entity_manager", getRepository]
+        arguments:
+            - Backend\Modules\Tags\Entity\Tag

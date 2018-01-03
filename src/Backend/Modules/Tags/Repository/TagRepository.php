@@ -242,7 +242,15 @@ class TagRepository extends EntityRepository
         return $results;
     }
 
-    public function findByModule(string $module, int $otherId, string $returnType, string $language): array
+    /**
+     * @param string $module
+     * @param int    $otherId
+     * @param string $returnType
+     * @param string $language
+     *
+     * @return array|string
+     */
+    public function findByModule(string $module, int $otherId, string $returnType, string $language)
     {
         $results = $this->getEntityManager()
             ->createQueryBuilder()
@@ -270,6 +278,8 @@ class TagRepository extends EntityRepository
                 break;
             case 'string':
             default:
+                dump($results);
+
                 return implode(',', $results);
                 break;
         }

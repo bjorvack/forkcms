@@ -53,7 +53,17 @@ class Model
     {
         $repository = self::getRepository();
 
-        return $repository->findById($id, 'name');
+        $tag = $repository->find($id);
+
+        if (!$tag instanceof Tag) {
+            return [];
+        }
+
+        $response = $tag->toArray();
+        $response['name'] = $response['tag'];
+        unset($response['tag']);
+
+        return $response;
     }
 
     public static function getAll(string $language = null): array

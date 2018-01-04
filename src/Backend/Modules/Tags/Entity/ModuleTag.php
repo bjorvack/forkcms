@@ -44,4 +44,19 @@ class ModuleTag
         $this->tag = $tag;
         $this->other = $other;
     }
+
+    public function getModule(): string
+    {
+        return $this->module;
+    }
+
+    public function getTag(): Tag
+    {
+        return $this->tag;
+    }
+
+    public function getOther(): int
+    {
+        return $this->other;
+    }
 }

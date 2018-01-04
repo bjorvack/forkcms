@@ -47,7 +47,7 @@ class TagRepository extends EntityRepository
             $language
         );
 
-        $this->lowerCountTags(array_filter($currentTags, $tags), $language);
+        $this->lowerCountTags(array_intersect($currentTags, $tags), $language);
         $this->removeZeroCountTags();
     }
 
@@ -144,19 +144,27 @@ class TagRepository extends EntityRepository
 
     private function removeOldLinks(int $otherId, string $module, array $currentTags): void
     {
-        $this->getEntityManager()->createQuery(
-            'delete from Backend\Modules\Tags\Entity\ModuleTag mt '.
-            'inner join Backend\Modules\Tags\Entity\Tag t on mt.tag_id = t.id'.
-            'WHERE mt.module = :module '.
-            'AND mt.other_id = :otherId '.
-            'AND t.tag IN (:tags)'
-        )
+        $moduleTags = $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('mt')
+            ->from(ModuleTag::class, 'mt')
+            ->innerJoin('mt.tag', 't')
+            ->where('mt.module = :module')
+            ->andWhere('mt.other = :otherId')
+            ->andWhere('t.tag IN (:tags)')
             ->setParameters([
                 'otherId' => $otherId,
                 'module' => $module,
                 'tags' => $currentTags,
             ])
-            ->execute();
+            ->getQuery()
+            ->getResult();
+
+        foreach ($moduleTags as $moduleTag) {
+            $this->getEntityManager()->remove($moduleTag);
+        }
+
+        $this->getEntityManager()->flush();
     }
 
     private function cleanupTags(array $tags): array
@@ -278,8 +286,6 @@ class TagRepository extends EntityRepository
                 break;
             case 'string':
             default:
-                dump($results);
-
                 return implode(',', $results);
                 break;
         }

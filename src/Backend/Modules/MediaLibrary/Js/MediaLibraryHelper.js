@@ -525,8 +525,12 @@ jsBackend.mediaLibraryHelper.group = {
     var $group = jsBackend.mediaLibraryHelper.group.get(groupId)
     var $items = jsBackend.mediaLibraryHelper.group.getSelectedItems(groupId)
 
+    console.log($group)
+    console.log($items.length)
+
     // toggle disabled button
     $group.find('.mediaEditBox .disconnectMediaItemsButton').toggleClass('disabled', ($items.length <= 0))
+    console.log($group.find('.mediaEditBox .disconnectMediaItemsButton'))
   },
 
   /**

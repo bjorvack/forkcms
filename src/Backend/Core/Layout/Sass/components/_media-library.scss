@@ -8,11 +8,11 @@
 
   &:before {
     content: "\f114";
-    color: #999;
+    color: $gray-550;
     font-family: FontAwesome;
     font-size: 12px;
     position: absolute;
-    left: 4px
+    left: 4px;
   }
 }
 
@@ -42,7 +42,7 @@
   }
 
   .mediaConnectedBox {
-    background-color: #fff;
+    background-color: $white;
   }
 
   .media-group-type-errors {
@@ -77,10 +77,6 @@
       color: $white;
     }
   }
-}
-
-.mediaEditBox {
-  background: #eee;
 }
 
 .mediaEditBox {
